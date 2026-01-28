@@ -48,3 +48,6 @@ calcular.addEventListener('click', ()=>{// função principal
     resposta.style.fontFamily = 'Verdana'
 
 })
+
+
+// A função principal foi substituida por uma arrow function ()=>
