@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superagency AI • Diagnóstico de Processos</title>
+    <style>
+        :root {
+            --primary: #051C2C; /* Azul McKinsey Profundo */
+            --accent: #00A9F4; /* Azul Tech */
+            --bg: #F4F7F9;
+            --text: #333;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        /* Lado Esquerdo - Formulário */
+        .form-section h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Garante que padding não quebre o layout */
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        button.btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        button.btn-primary:hover {
+            background-color: #003366;
+        }
+
+        /* Lado Direito - Resultado */
+        .result-section {
+            background-color: #FAFBFC;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* A Matriz 2x2 */
+        .matrix-container {
+            width: 300px;
+            height: 300px;
+            background: white;
+            border: 2px solid #333;
+            position: relative;
+            margin: 20px auto;
+        }
+
+        /* Linhas da Matriz */
+        .matrix-line-v {
+            position: absolute;
+            left: 50%;
+            height: 100%;
+            width: 1px;
+            background: #ddd;
+        }
+        .matrix-line-h {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        /* Labels dos Eixos */
+        .axis-label {
+            position: absolute;
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .label-y-top { top: 5px; left: 5px; }
+        .label-y-bottom { bottom: 5px; left: 5px; }
+        .label-x-right { bottom: 5px; right: 5px; text-align: right;}
+        .label-x-left { bottom: 5px; left: 5px; }
+
+        /* A "Bolinha" do resultado */
+        .result-dot {
+            width: 20px;
+            height: 20px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, 50%); /* Centraliza no ponto */
+            box-shadow: 0 0 10px rgba(0, 169, 244, 0.5);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            /* Posição Inicial (Centro) */
+            bottom: 50%; 
+            left: 50%;
+        }
+
+        .recommendation-card {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #eefbff;
+            border-left: 4px solid var(--accent);
+            text-align: left;
+            width: 100%;
+            display: none; /* Escondido até calcular */
+        }
+
+        .recommendation-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary);
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-section">
+        <h2>Mapeamento de Tarefa</h2>
+        
+        <div class="input-group">
+            <label>Nome da Tarefa</label>
+            <input type="text" id="taskName" placeholder="Ex: Relatório Semanal de Vendas">
+        </div>
+
+        <div class="input-group">
+            <label>Frequência & Padronização (Eixo Y)</label>
+            <span class="helper-text">O quão repetitiva e padronizada é esta tarefa?</span>
+            <input type="range" id="inputRepetition" min="1" max="5" step="0.5" value="3">
+            <div class="range-labels">
+                <span>1 (Única/Caótica)</span>
+                <span>5 (Diária/Regrada)</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Complexidade Cognitiva (Eixo X)</label>
+            <span class="helper-text">Requer muita empatia humana ou julgamento moral?</span>
+            <input type="range" id="inputComplexity" min="1" max="5" step="0.5" value="3">
+            <div class="range-labels">
+                <span>1 (Lógica Pura)</span>
+                <span>5 (Empatia/Julgamento)</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Risco de Erro (Fator de Segurança)</label>
+            <span class="helper-text">Qual a gravidade se a IA errar?</span>
+            <input type="range" id="inputRisk" min="1" max="5" step="0.5" value="3">
+            <div class="range-labels">
+                <span>1 (Baixo)</span>
+                <span>5 (Crítico/Legal)</span>
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="analyzeTask()">Diagnosticar Tarefa</button>
+    </div>
+
+    <div class="result-section">
+        <h3>Matriz de Superagência</h3>
+        <p style="font-size: 0.9rem; color: #666;">Onde sua tarefa se encaixa na estratégia de IA</p>
+        
+        <div class="matrix-container">
+            <div class="matrix-line-v"></div>
+            <div class="matrix-line-h"></div>
+            
+            <div class="axis-label label-y-top">Alta Repetição</div>
+            <div class="axis-label label-x-right">Alta Empatia</div>
+            <div class="axis-label" style="top: 10px; right: 10px; color: #ccc;">Humano</div>
+            <div class="axis-label" style="top: 10px; left: 10px; color: var(--accent);">Automação</div>
+
+            <div class="result-dot" id="dot"></div>
+        </div>
+
+        <div class="recommendation-card" id="resultCard">
+            <h3 id="resTitle">Aguardando Análise...</h3>
+            <p id="resDesc">Preencha os dados ao lado para receber a estratégia.</p>
+            <p><strong>Ferramenta Sugerida:</strong> <span id="resTool">-</span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function analyzeTask() {
+        // 1. Capturar Valores (Convertendo para Float)
+        const name = document.getElementById('taskName').value;
+        const repetition = parseFloat(document.getElementById('inputRepetition').value); // 1 a 5
+        const complexity = parseFloat(document.getElementById('inputComplexity').value); // 1 a 5
+        const risk = parseFloat(document.getElementById('inputRisk').value); // 1 a 5
+
+        if(!name) {
+            alert("Por favor, dê um nome para a tarefa.");
+            return;
+        }
+
+        // 2. O Algoritmo McKinsey Simplificado
+        // Eixo Y (Vertical): "Potencial de Automação"
+        // Quanto maior a repetição e menor o risco, mais alto no gráfico.
+        // Invertemos o risco (5 virou 1) para somar.
+        let riskFactor = 6 - risk; 
+        let yScore = (repetition + riskFactor) / 2; // Média de 1 a 5
+
+        // Eixo X (Horizontal): "Necessidade Humana"
+        // Igual à complexidade inserida.
+        let xScore = complexity;
+
+        // 3. Atualizar a Matriz Visual
+        // Converter score (1-5) em porcentagem (0-100%) para CSS
+        let bottomPercent = ((yScore - 1) / 4) * 100;
+        let leftPercent = ((xScore - 1) / 4) * 100;
+
+        const dot = document.getElementById('dot');
+        dot.style.bottom = `${bottomPercent}%`;
+        dot.style.left = `${leftPercent}%`;
+
+        // 4. Gerar Recomendação (Lógica de Quadrantes)
+        let title, desc, tool;
+
+        if (yScore > 3 && xScore < 2.5) {
+            // Alta Repetição + Baixa Empatia = ROBÔ
+            title = "🤖 Automação Total (Agentic AI)";
+            desc = "Esta tarefa é repetitiva, lógica e de baixo risco. A IA deve executar 90% do trabalho.";
+            tool = "Agente Autônomo Python ou RPA";
+        } else if (yScore > 3 && xScore >= 2.5) {
+            // Alta Repetição + Alta Empatia = CO-PILOTO
+            title = "🚀 Superagência (Co-Creation)";
+            desc = "Tarefa frequente, mas que requer toque humano. Use a IA para gerar rascunhos, o humano finaliza.";
+            tool = "ChatGPT Enterprise / Copilot Integrado";
+        } else if (yScore <= 3 && xScore < 3) {
+            // Baixa Repetição + Baixa Empatia = FERRAMENTA
+            title = "🛠️ Assistência Pontual";
+            desc = "Não vale a pena criar um agente complexo. Use IA apenas para consultas rápidas.";
+            tool = "Chatbot Genérico";
+        } else {
+            // Baixa Repetição + Alta Empatia/Risco = HUMANO
+            title = "🧠 Domínio Humano (Com Suporte)";
+            desc = "O risco ou a complexidade emocional são altos demais. A IA atua apenas como crítica (Reviewer).";
+            tool = "IA apenas para revisão de erros";
+        }
+
+        // 5. Mostrar Resultado
+        document.getElementById('resTitle').innerText = title;
+        document.getElementById('resDesc').innerText = desc;
+        document.getElementById('resTool').innerText = tool;
+        document.getElementById('resultCard').style.display = "block";
+    }
+</script>
+
+</body>
+</html>
